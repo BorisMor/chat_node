@@ -32,7 +32,12 @@ app.get('/login', (req, res) => {
     });
 });
 
-// список пользвоателей
+// Разлогинится
+app.get('/logout', (req, res) => {
+    (new ChatUser).process(req, res).actionLogout();
+});
+
+// список пользователей
 app.get('/lits-user', (req, res) => {
     var obj = new ChatUser;
     obj.process(req, res);
@@ -43,8 +48,4 @@ app.get('/lits-user', (req, res) => {
         }
         obj.respondEnd(200, result)
     });
-});
-
-app.get('/logout', (req, res) => {
-    (new ChatUser).process(req, res).actionLogout();
 });

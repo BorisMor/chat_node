@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test chat</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.3/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body>
+    <div class="container" id="mainChat">
+        <div class="row">
+            <div class="col-md-12">
+                <h1 class="text-center">Chat</h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <textarea class="form-control" style="margin-bottom: 10px" rows="15" v-model="listMessage"></textarea>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="input-group">
+                    <input type="text" v-model="newMessage" v-on:keyup.enter="sendMessage" class="form-control" placeholder="Enter text...">
+                    <span class="input-group-btn">
+                        <button v-on:click="sendMessage" class="btn btn-default" type="button">Send</button>
+                    </span>
+                </div>
+                <!-- /input-group -->
+            </div>
+        </div>
+
+
+        <h2>List user in chat</h2>
+        <span v-if="!listUser">List empty</span>
+
+        <ul>
+            <li v-for="(item,index) in listUser">{{item.ip}}</li>
+        </ul>
+    </div>
+
+
+    <script type="text/javascript" src="https://unpkg.com/vue@2.5.6/dist/vue.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue-resource@1.3.4"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" charset="UTF-8"></script>
+
+    <script type="text/javascript">
+        var inf = new Vue({
+            el: '#mainChat',
+            data: {
+                user: undefined,
+                listMessage: "",
+                newMessage: undefined,
+                socket: undefined,
+                listUser: undefined
+            },
+            mounted: function() {
+                this.$nextTick(function() {
+                    this.selfLogin();
+                });
+            },
+            methods: {
+                selfLogin: function() {
+                    var self = this;
+
+                    this.$http.get('/login').then(function(response) {
+                        self.user = response.body;
+                        this._initSoket();
+                        this.socket.emit("login", this.user.ip);
+                    });
+
+                },
+
+                updateListActiveUser: function() {
+                    var self = this;
+
+                    this.$http.get('/lits-user').then(function(response) {
+                        if (response.body.length == 0) {
+                            self.listUser = undefined;
+                        } else {
+                            self.listUser = response.body;
+                        }
+
+                    });
+                },
+
+                onLoginUser: function(id) {
+                    console.log('login user ', id);
+                    var message = 'login user ' + id;
+                    this.listMessage = message + "\n" + this.listMessage;
+                    this.updateListActiveUser();
+                },
+
+                onLogoutUser: function(id) {
+                    console.log('logout ', id);
+                    var message = 'logout ' + id;
+                    this.listMessage = message + "\n" + this.listMessage;
+                    this.updateListActiveUser();
+                },
+
+                onNewMessage: function(data) {
+                    console.log('new_message', data);
+                    var message = data.user + ': ' + data.message;
+                    this.listMessage = message + "\n" + this.listMessage;
+                },
+
+                _initSoket: function() {
+                    this.socket = io();
+                    this.socket.on('login', this.onLoginUser);
+                    this.socket.on('logout', this.onLogoutUser);
+                    this.socket.on('new_message', this.onNewMessage);
+                },
+
+                sendMessage: function(event) {
+                    if (this.newMessage.length > 0) {
+                        this.socket.emit("new_message", {
+                            user: this.user.ip,
+                            message: this.newMessage
+                        });
+                        this.newMessage = '';
+                    }
+                }
+            }
+
+        })
+    </script>
+</body>
+
+</html>
